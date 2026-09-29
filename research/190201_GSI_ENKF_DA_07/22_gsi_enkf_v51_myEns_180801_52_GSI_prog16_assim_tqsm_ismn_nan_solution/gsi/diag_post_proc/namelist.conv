@@ -1,0 +1,6 @@
+&iosetup
+ infilename='diag_conv_ges.mem010',
+ outfilename='diag_conv_ges.mem010.txt',
+ casename=mem010,
+ smstationnum=77,
+/
