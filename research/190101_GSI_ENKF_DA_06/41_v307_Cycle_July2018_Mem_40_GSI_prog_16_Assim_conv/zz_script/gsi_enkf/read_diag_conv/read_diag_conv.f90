@@ -1,0 +1,526 @@
+PROGRAM read_diag_conv
+!
+!  This program is to show how to 
+!  read GSI diagnositic file for conventional data, which are
+!  generated from subroutine:
+!      setupps.f90
+!      setupt.f90
+!      setupq.f90
+!      setuppw.f90
+!      setupuv.f90
+!      setupsst.f90
+!      setupgps.f90
+!
+!  For example in setupt.f90:
+!        cdiagbuf(ii)       ! station id receiver occ id, transmitter occ id
+!        rdiagbuf(1,ii)     ! observation type
+!        rdiagbuf(2,ii)     ! observation subtype
+!        rdiagbuf(3,ii)     ! observation latitude (degrees)
+!        rdiagbuf(4,ii)     ! observation longitude (degrees)
+!        rdiagbuf(5,ii)     ! station elevation (meters)
+!        rdiagbuf(6,ii)     ! observation pressure (hPa)
+!        rdiagbuf(7,ii)     ! observation height (meters)
+!        rdiagbuf(8,ii)     ! obs time (hours relative to analysis time)
+!        rdiagbuf(9,ii)     ! input prepbufr qc or event mark
+!        rdiagbuf(10,ii)    ! setup qc or event mark (currently qtflg only)
+!        rdiagbuf(11,ii)    ! read_prepbufr data usage flag
+!        rdiagbuf(12,ii)    ! analysis usage flag (1=use, -1=not used)
+!        rdiagbuf(13,ii)    ! nonlinear qc relative weight
+!        rdiagbuf(14,ii)    ! prepbufr inverse obs error (K**-1)
+!        rdiagbuf(15,ii)    ! read_prepbufr inverse obs error (K**-1)
+!        rdiagbuf(16,ii)    ! final inverse observation error (K**-1)
+!        rdiagbuf(17,ii)    ! temperature observation (K)
+!        rdiagbuf(18,ii)    ! obs-ges used in analysis (K)
+!        rdiagbuf(19,ii)    ! obs-ges w/o bias correction (K) (future slot)
+!
+!  It is written out as:
+!     write(7)'  t',nchar,nreal,ii,mype
+!     write(7)cdiagbuf(1:ii),rdiagbuf(:,1:ii)
+!
+!  For example in setupbend.f90:
+!      the arrary contents disgnosis information is rdiagbuf.
+!        cdiagbuf(ii)       ! receiver occ id, transmitter occ id
+!        rdiagbuf(1,ii)     ! observation type
+!        rdiagbuf(2,ii)     ! profile identifier
+!        rdiagbuf(3,ii)     ! observation latitude (degrees)
+!        rdiagbuf(4,ii)     ! observation longitude (degrees)
+!        rdiagbuf(5,ii)     ! obs-ges/obs (percentage)
+!        rdiagbuf(6,ii)     ! pressure at obs location (hPa) if monotone grid
+!        rdiagbuf(7,ii)     ! impact height (meters)
+!        rdiagbuf(8,ii)     ! obs time (hours relative to analysis time)
+!        rdiagbuf(9,ii)     ! model terrain (m)
+!        rdiagbuf(10,ii)    ! qc flag
+!        rdiagbuf(11,ii)    ! data usage flag
+!        rdiagbuf(12,ii)    ! analysis usage flag (1=use, -1=not used)
+!        rdiagbuf(13,ii)    ! nonlinear qc relative weight
+!        rdiagbuf(14,ii)    ! original inverse obs error (rad**-1)
+!        rdiagbuf(15,ii)    ! original error+represent error inverse
+                            ! gps obs error (rad**-1)
+!        rdiagbuf(16,ii)    ! final inverse observation error due to 
+                            ! superob factor (rad**-1) and qc
+                            ! modified in genstats_gps
+!        rdiagbuf(17,ii)    ! bending angle observation (radians)
+!        rdiagbuf(18,ii)    ! temperature at obs location (K) if monotone grid
+!        rdiagbuf(19,ii)    ! model vertical grid (interface)
+!        rdiagbuf(20,ii)    ! one=use of bending angle
+!        rdiagbuf(21,ii)    ! specific humidity at obs location (kg/kg) if
+!        monotone grid
+! output from genstats_gps.f90
+!     write(7)'gps',nchar,nreal,icnt,mype,ioff
+!     write(7)cdiag,sdiag
+! 
+
+	use kinds, only: r_kind,r_single,i_kind
+
+	implicit none
+
+	real(r_kind) tiny_r_kind
+	!
+	! read in variables
+	!
+  	character(8),allocatable,dimension(:):: cdiagbuf
+  	real(r_single),allocatable,dimension(:,:)::rdiagbuf
+  	integer(i_kind) nchar,nreal,ii,mype
+  	integer(i_kind) idate
+
+	! ====================================================================================
+	integer(i_kind) iii													! added by liaofan 2018.09.03
+	integer(i_kind) count												! added by liaofan 2018.09.03
+	integer(i_kind) rdiagbuf_12 										! added by liaofan 2018.09.03
+	integer(i_kind) sm_count 											! added by liaofan 2019.03.11
+	character(100)  sm_innov_header									! added by liaofan 2019.03.14
+	real(r_single),allocatable,dimension(:) :: sm_innov_data ! added by liaofan 2019.03.14
+	integer(i_kind) smnum												! added by liaofan 2019.03.14
+	character(10) 	 idate_str											! added by liaofan 2019.03.26
+	! ====================================================================================
+	!
+	!  namelist files
+	! === Revised by liaofan on 2019.03.01 =====================
+	! See rn190228
+  	character(180) 	:: infilename        ! file from GSI running directory
+  	character(180) 	:: outfilename       ! file name saving results
+	character(10) 		:: casename
+	integer(i_kind) 	:: smstationnum
+  	namelist/iosetup/ infilename, outfilename, casename, smstationnum
+	! ==========================================================
+	!
+	! output variables
+	!
+  	character(len=3)  :: var
+  	real :: rlat,rlon,rprs,robs1,rdpt1,robs2,rdpt2,ruse,rerr
+  	real :: rdhr, ddiff, perdiff, rhgt, temp, sh
+  	character(8) :: stationID
+  	integer :: itype,iuse,iusev
+	!
+	!  misc.
+	!
+  	character ::  ch
+  	integer :: i,j,k,ios
+  	integer :: ic, iflg
+
+  	integer,dimension(300):: imap_ps,imap_t,imap_q,imap_pw,imap_sst,imap_uv
+
+
+
+	!
+	!  tiny_r_kind = tiny(0)
+	!
+  	call convinfo_read(imap_ps,imap_t,imap_q,imap_pw,imap_sst,imap_uv)
+	!
+  	outfilename='diag_results'
+  	open(11,file='namelist.conv')
+   read(11,iosetup)
+  	close(11)
+	!
+	! ======================
+	! 1. Defining the file name
+	! ======================
+	! 1.1 Original (file name for the text output)
+	! -------------------------------------------	
+  	open(42, file=trim(outfilename),IOSTAT=ios)
+	
+  	if(ios > 0 ) then
+   	write(*,*) ' cannot open file ', trim(outfilename)
+      stop 123
+  	else
+      write(*,*) ' open file ', trim(outfilename)
+  	endif
+
+	! 1.2. Original (file name for the binary output)
+	! ---------------------------------------------
+	OPEN (17,FILE=trim(infilename),STATUS='OLD',IOSTAT=ios,ACCESS='SEQUENTIAL',  &
+             FORM='UNFORMATTED')
+   if(ios > 0 ) then
+      write(*,*) ' file is unavailabe: ', trim(infilename)
+      stop 123
+   endif
+	
+	! 1.3. Added (file name for the binary output)
+	! ------------------------------------------
+	! === Added liaofan 2018.09.03 ========================================
+	open(unit=99,file=trim(infilename)//'_liaofan.bin',form='unformatted')
+	! =====================================================================
+	
+	! ============================================
+	! 2. Reading the original binary data and write 
+	!	output to my binary filie and the text file
+	! ============================================	
+	! 2.1. Read the original 	
+   read(17, ERR=999) idate
+	
+	! 2.2. Write to the screen
+   write(*,*) 'process date: ',idate
+
+	! 2.3. Write data to my binary data
+	! === Added liaofan 2018.09.03 ========================================
+	write(99,ERR=1001) idate
+	count = 0
+	! =====================================================================
+	
+	! 2.4. Forcely add soil moisture data
+	! === Added liaofan 2019.03.14 ========================================
+	!write(idate_str,"(I10)") idate
+   !
+	!open(43, file='sm_innov_'//trim(idate_str)//'_'//trim(casename)//'.txt',IOSTAT=ios)	
+	!read(43, '(A100)' ) sm_innov_header
+	!
+	!
+	!do smnum = 1,smstationnum
+	!	
+	!	allocate(sm_innov_data(7))
+	!	
+	!	read(43, * ) sm_innov_data
+	!
+	!	var 	= ' sm'
+	!	nchar = 1
+	!	nreal = 19
+	!	ii 	= 1
+	!	mype 	= 1
+	!
+	!	allocate(cdiagbuf(1),rdiagbuf(nreal,1))
+	!
+	!	cdiagbuf(1)   = '11111'				! Station ID
+	!	rdiagbuf(1,1) = 111					! Observation type
+	!	rdiagbuf(2,1) = 0						! observation subtype
+	!	rdiagbuf(3,1) = sm_innov_data(2)	! observation latitude (degree)
+	!	rdiagbuf(4,1) = sm_innov_data(3)	! observation longitude (degree)
+	!	rdiagbuf(5,1) = 0						! station elevation (meter)
+	!	rdiagbuf(6,1) = sm_innov_data(4)	! observation pressure (hPa)
+	!	rdiagbuf(7,1) = 0						! observation height (meter)
+	!	rdiagbuf(8,1) = 0						! observation time (hours relative to analysis time)
+	!	rdiagbuf(9,1) = 2						! input prepbufr qc or event mark
+	!	rdiagbuf(10,1)= 0						! setup qc or event mark (currently qtflg only)
+	!	rdiagbuf(11,1)= 0						! read_prepbufr data usage flag
+	!	rdiagbuf(12,1)= sm_innov_data(1)	! analysis usage flat (1=use, -1=not used)
+	!	rdiagbuf(13,1)= 1						! nonlinear qc relative weight
+	!	rdiagbuf(14,1)= sm_innov_data(5)	! prepbufr inverse obs error (K**-1)
+	!	rdiagbuf(15,1)= sm_innov_data(5)	! read_prepbufr inverse obs error (K**-1)
+	!	rdiagbuf(16,1)= sm_innov_data(5)	! final inverse observation error (K**-1)
+	!	rdiagbuf(17,1)= sm_innov_data(6)	! observation (K)
+	!	rdiagbuf(18,1)= sm_innov_data(7)	! obs-ges used in analysis
+	!	rdiagbuf(19,1)= sm_innov_data(7)	! obs-ges without bias correction 
+	!	
+	!	write(99,ERR=1001) var, nchar,nreal,ii,mype
+	!	write(99,ERR=1001) cdiagbuf, rdiagbuf
+	!
+	!	deallocate(cdiagbuf,rdiagbuf)	! Close variables for the binary file
+	!	deallocate(sm_innov_data)		! Close variables for my text file
+	!
+	!enddo
+   !
+	!close(43)	! Close my text file
+	!! =====================================================================		
+	
+	
+	100  continue
+	
+	
+	
+   read(17, ERR=999,end=110) var, nchar,nreal,ii,mype
+   !write(*,*) var, nchar,nreal,ii,mype
+   
+  	! === Added liaofan 2018.09.03 ========================================
+	!if (var == '  t') then	
+	!	write(*,*) var, nchar,nreal,ii,mype
+	!end if
+  	! =====================================================================	
+		
+	if (ii > 0) then
+		
+      allocate(cdiagbuf(ii),rdiagbuf(nreal,ii))
+      read(17,ERR=999,end=110) cdiagbuf, rdiagbuf
+		  
+	  	! === Added liaofan 2018.09.03 ========================================
+		! see rn 190228
+		! 
+		! Criterions:
+		!	- Keep (1) 't'; (2) flag=1; 
+		!if (var == '  q') then	  	
+		if (.true.) then
+			iii = 1
+			
+			do i=1,ii
+				rdiagbuf_12 = rdiagbuf(12,i)	! flag=1 or -1
+				
+				! if (rdiagbuf_12 == 1 ) then
+				if (.true.) then
+					count = count + 1
+					
+					if (.true.) then
+					!if ( abs(rdiagbuf(3,i)-39.07)<0.01 .and. &
+					!	  abs(rdiagbuf(6,i)-980)<5 )  then
+						
+						! write(*,*) 'rdiagbuf(7,i)=',rdiagbuf(7,i)
+						!rdiagbuf(18,i) = rdiagbuf(18,i) - 0.704	! obs-ges used in analysis 
+						!rdiagbuf(19,i) = rdiagbuf(19,i) - 0.704	! obs-ges without bias correction 
+						
+						! rdiagbuf(8,i) = 0		! obs time (hours relative to analysis time)
+						! rdiagbuf(6,i) = 800	! observation pressure (hPa)
+						! rdiagbuf(7,i) = 1000	! impact height (meters)
+						! rdiagbuf(3,i) = 38.5	! observation latitude (degrees)
+						! rdiagbuf(4,i) = 263	! observation longitude (degrees)
+						! rdiagbuf(5,i) = 263 	! obs-ges/obs (percentage)
+						
+						write(99,ERR=1001) var,nchar,nreal,iii,mype
+						write(99,ERR=1001) cdiagbuf(i),rdiagbuf(:,i)
+					end if			
+				end if
+			enddo
+		end if		
+	  	! =====================================================================	
+		  
+      if (var == 'gps') then
+          do i=1,ii
+             itype=rdiagbuf(1,i)    ! observation type
+             rlat=rdiagbuf(3,i)     ! observation latitude (degrees)
+             rlon=rdiagbuf(4,i)     ! observation longitude (degrees)
+             perdiff=rdiagbuf(5,i)  ! obs-ges/obs (percentage)
+             rprs=rdiagbuf(6,i)     ! observation pressure (hPa)
+             rhgt=rdiagbuf(7,i)     ! impact height (meters)
+             rdhr=rdiagbuf(8,i)     ! obs time (hours relative to analysis time)
+             iusev=int(rdiagbuf(11,i))    ! data usage flag ( value ) 
+             iuse=int(rdiagbuf(12,i))    ! analysis usage flag (1=use, -1=monitoring ) 
+             robs1=rdiagbuf(17,i)     ! bending angle observation (radians)
+             ddiff=robs1*perdiff      ! obs-ges used in analysis (K)
+             temp=rdiagbuf(18,i)  ! temperature (k)
+             sh=rdiagbuf(21,i)    ! specific humidity (kg/kg)
+             rerr = 0
+             if (rdiagbuf(16,i) > 0) then   ! final inverse observation error (K**-1)
+               rerr=1.0/rdiagbuf(16,i)
+             end if 
+
+				 ! get station ID
+             stationID = cdiagbuf(i)
+				 ! print*, 'stationID= ', stationID
+             iflg = 0
+				 
+             do ic=8,1,-1
+              ch = stationID(ic:ic)
+              if (ch > ' ' .and. ch <= 'z') then
+                iflg = 1
+              else
+                 stationID(ic:ic) = ' '
+              end if
+              if (ch == ' '  .and. iflg == 1) then
+                 stationID(ic:ic) = '_'
+              endif 
+             enddo
+
+             rhgt=rhgt/1000.0 !km
+             perdiff=perdiff*100. !(percentage)
+				 !  write out result for one variable on one pitch
+              write (42,'(A3," @ ",A8," : ",I3,F10.2,F8.2,F8.2,F8.2,F8.2, I5,F10.4, F10.4, F10.2)') &
+                 var,stationID,itype,rdhr,rlat,rlon,rprs,rhgt,iuse,robs1,ddiff,perdiff
+
+          enddo   ! i  end for one station
+
+        else !if not gps
+
+          do i=1,ii
+             itype=rdiagbuf(1,i)    ! observation type
+             rlat=rdiagbuf(3,i)     ! observation latitude (degrees)
+             rlon=rdiagbuf(4,i)     ! observation longitude (degrees)
+             rprs=rdiagbuf(6,i)     ! observation pressure (hPa)
+             rdhr=rdiagbuf(8,i)     ! obs time (hours relative to analysis time)
+             iuse=int(rdiagbuf(12,i))    ! analysis usage flag (1=use, -1=monitoring ) 
+             iusev=int(rdiagbuf(11,i))    ! analysis usage flag ( value ) 
+             ddiff=rdiagbuf(18,i)   ! obs-ges used in analysis (K)
+             rerr = 0
+             if (rdiagbuf(16,i) > 0) then   ! final inverse observation error (K**-1)
+               rerr=1.0/rdiagbuf(16,i)
+             end if 
+             robs1=rdiagbuf(17,i)    !  observation (K)
+             rdpt1=rdiagbuf(18,i)    !  obs-ges used in analysis 
+
+				 ! get station ID
+             stationID = cdiagbuf(i)
+             iflg = 0
+             do ic=8,1,-1
+              ch = stationID(ic:ic)
+              if (ch > ' ' .and. ch <= 'z') then
+                iflg = 1
+              else
+                 stationID(ic:ic) = ' '
+              end if
+              if (ch == ' '  .and. iflg == 1) then
+                 stationID(ic:ic) = '_'
+              endif 
+             enddo
+				 
+				 !   When the data is q, unit convert kg/kg -> g/kg **/
+             if (var == "  q") then
+                robs1 = robs1 * 1000.0
+                rdpt1 = rdpt1 * 1000.0
+                rerr = rerr * 1000.0
+             end if
+				 
+				 !   When the data is pw, replase the rprs to -999.0 **/
+             if (var == " pw") rprs=-999.0
+
+             if(robs1 > 1.0e8) then
+               robs1=-99999.9
+               ddiff=-99999.9
+             endif
+				 
+				 !  write out result for one variable on one pitch
+             if (var .ne. " uv") then
+                write (42,'(A3," @ ",A8," : ",I3,F10.2,F8.2,F8.2,F8.2,I5,2F10.2)') &
+                   var,stationID,itype,rdhr,rlat,rlon,rprs,iuse,robs1,ddiff
+             else
+					 !  ** When the data is uv, additional output is needed **/
+                robs2=rdiagbuf(20,i)
+                rdpt2=rdiagbuf(21,i)
+                write (42,'(A3," @ ",A8," : ",I3,F10.2,F8.2,F8.2,F8.2,I5,4F10.2)') &
+                   var,stationID,itype,rdhr,rlat,rlon,rprs,iuse,robs1,ddiff,robs2, rdpt2
+             endif
+
+          enddo   ! i  end for one station
+
+        endif !gps or other conv variables
+
+        deallocate(cdiagbuf,rdiagbuf)
+     else
+        read(17)
+     endif
+	  
+     goto 100  ! goto another variable
+110  continue
+
+    close(17)
+    close(42)
+	 
+ 	! === Added liaofan 2018.09.03 ========================================
+ 	close(99)
+	1001 write(*,*) 'Error in writing liaofan_diag_conv_binary'
+	
+	!
+	!open(unit=98,file=trim(infilename)//'_liaofan.bin',form='unformatted')
+	!
+	!read(98,err=999) idate
+	!write(*,*) idate
+   !
+   !
+	!1100  continue
+	!	
+	!read(98,err=999,end=1110) var, nchar,nreal,ii,mype
+	!write(*,*) 'var=',var,'; nchar=',nchar,'; nreal=',nreal,'; ii=',ii
+	!write(*,*) 'mype=',mype
+   !
+	!if (ii > 0) then
+   !   allocate(cdiagbuf(ii),rdiagbuf(nreal,ii))
+   !   read(98,ERR=999,end=1110) cdiagbuf, rdiagbuf	 
+	!	deallocate(cdiagbuf,rdiagbuf) 
+	!endif
+	!
+   !goto 1100  ! goto another variable
+	!1110  continue
+	!
+	!close(98)
+ 	! =====================================================================
+
+  STOP 9999
+
+999    PRINT *,'error read in diag file'
+
+      stop 1234
+
+END PROGRAM read_diag_conv
+
+subroutine convinfo_read(imap_ps,imap_t,imap_q,imap_pw,imap_sst,imap_uv)
+!$$$  subprogram documentation block
+!                .      .    .                                       .
+! subprogram:    convinfo_read      read conventional information file
+!
+    implicit none
+    character(len=1)cflg
+    character(len=16) cob
+    character(len=7) iotype
+    character(len=120) crecord
+    integer lunin,i,n,nc,ier,istat
+    integer nlines,maxlines,nconvtype
+
+    character(len=16), dimension(1000)::ioctype
+    integer,dimension(1000):: icuse,ictype,icsubtype
+    integer,dimension(300):: imap_ps,imap_t,imap_q,imap_pw,imap_sst,imap_uv
+
+    imap_ps=-10
+    imap_t=-10
+    imap_q=-10
+    imap_pw=-10
+    imap_sst=-10
+    imap_uv=-10
+    lunin = 47
+    open(lunin,file='convinfo',form='formatted')
+    rewind(lunin)
+    nconvtype=0
+    nlines=0
+    read1: do
+      read(lunin,1030,err=333, end=300)cflg,iotype
+1030  format(a1,a7,2x,a120)
+      nlines=nlines+1
+      if(cflg == '!')cycle
+      nconvtype=nconvtype+1
+    enddo read1
+
+300 continue
+
+    if(nconvtype == 0) then
+       write(6,*) 'CONVINFO_READ: NO CONVENTIONAL DATA USED'
+       return
+    endif
+
+    rewind(lunin)
+    do i=1,nlines
+       read(lunin,1030)cflg,iotype,crecord
+       if(cflg == '!')cycle
+       nc=nc+1
+       ioctype(nc)=iotype
+           !otype   type isub iuse 
+           !ps       120    0    1 
+ !ioctype(nc),
+           !  ictype(nc),
+           !     icsubtype(nc),
+           !              icuse(nc),
+
+       read(crecord,*)ictype(nc),icsubtype(nc),icuse(nc)
+!       write(6,1031)ioctype(nc),ictype(nc),icsubtype(nc),icuse(nc)
+1031   format('READ_CONVINFO: ',a7,1x,i3,1x,i4,1x,i2,1x,g13.6)
+       if(trim(ioctype(nc)) == 'ps') imap_ps(ictype(nc))=icuse(nc)
+       if(trim(ioctype(nc)) == 't') imap_t(ictype(nc))=icuse(nc)
+       if(trim(ioctype(nc)) == 'q') imap_q(ictype(nc))=icuse(nc)
+       if(trim(ioctype(nc)) == 'pw') imap_pw(ictype(nc))=icuse(nc)
+       if(trim(ioctype(nc)) == 'sst') imap_sst(ictype(nc))=icuse(nc)
+       if(trim(ioctype(nc)) == 'uv') imap_uv(ictype(nc))=icuse(nc)
+
+    enddo
+
+    close(lunin)
+!    DO i =1, 300
+!    write(*,'(10I4)') i, imap_t(i),imap_q(i),imap_pw(i),imap_sst(i),imap_uv(i)
+!    enddo
+
+    return
+333 continue
+    write(*,*) ' error in read'
+    stop 1234
+  end subroutine convinfo_read

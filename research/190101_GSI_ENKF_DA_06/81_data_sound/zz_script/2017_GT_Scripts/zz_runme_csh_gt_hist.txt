@@ -1,0 +1,85 @@
+Update: 2017.08.20
+
+# ======================	
+# Top setting	
+# ======================
+
+	# Old storage (GT)
+	# -----------------
+	#                      | apurimac                     | apurimac_02            	| apurimac_03 (for SMDA paper)
+	# --------------------------------------------------------------------------------------------------------------------
+	# MODULE_FILE          | module_default               | module_20150205.txt	 	| module_20150204.txt
+	# PROGRAM_DIR          | ~/data/apurimac              | ~/data/apurimac_02			| ~/data/apurimac_03
+	# WPS_EXE_VERSION      | WPSV3.4         	            | WPS3.6.1						| WPS3.4.1
+	# WPS_GEOG_PATH        | ${PROGRAM_DIR}/wps/geog/geog | ${PROGRAM_DIR}/wps/geog	| ${PROGRAM_dir}/wps/geog
+	# WRFDA_EXE_VERSION    | WRFDA3.4_4dvar_dm            | WRFDA3.6.1_4dvar_dm		| WRFDA3.4_dm
+	# WRFPLUS_EXE_VERSION  | WRFPLUS3.4_dm                | WRFPLUS3.6.1_dm				| WRFPLUS3.4_dm
+	# WRFDA_THIN_MESH_CONV | "30*10."                     | "28*10."						| "30*10." 
+	# WRFDA_I_PARENT_START | 1                            | 0								| 1
+	# WRFDA_J_PARENT_START | 1 							  | 0								| 1
+	# WRF_EXE_VERSION      | WRFV3.4_dm                   | WRF3.6.1_dm					| WRF3.4_dm
+	
+	# New storage (GT)
+	# -----------------
+	#                      | 01_install                                | 04_install        
+	# ---------------------------------------------------------------------------------------------------------
+	# MODULE_FILE          | data2/installation/module_01_20151005.txt | data2/installation/module_04_20160203.txt  
+	# PROGRAM_DIR          | ~/data2/installation/01_install           | ~/data2/installation/04_install
+	# WPS_EXE_VERSION      | WPS3.4                                    | WPS3.7.1    
+	# WPS_GEOG_PATH        | ${PROGRAM_DIR}/wps/geog                   | ${PROGRAM_DIR}/wps/geog
+	# WRFDA_EXE_VERSION    | WRFDA3.4_4dvar_dm                         | WRFDA3.7.1_4dvar_dm
+	# WRFPLUS_EXE_VERSION  | WRFPLUS3.4_dm                             | WRFPLUS3.7.1_dm
+	# WRFDA_THIN_MESH_CONV | "30*10."                                  | "28*10."
+	# WRFDA_I_PARENT_START | 1                                         | 0
+	# WRFDA_J_PARENT_START | 1 								           | 0
+	# WRF_EXE_VERSION      | WRFV3.4_dm                                | WRF3.7.1_dm	
+
+		# For apurimac_02 (old storage)
+		if (${MODULE_FILE} == 'module_20150205.txt') then	
+			set PROGRAM_DIR				= ~/data/apurimac_02
+			set WPS_EXE_VERSION			= WPS3.6.1
+			set WPS_GEOG_PATH				= ${PROGRAM_DIR}/wps/geog
+			set WRFDA_EXE_VERSION		= WRFDA3.6.1_4dvar_dm	
+			set WRFPLUS_EXE_VERSION		= WRFPLUS3.6.1_dm
+			set WRFDA_THIN_MESH_CONV	= "28*10."
+			set WRFDA_I_PARENT_START	= 0
+			set WRFDA_J_PARENT_START	= 0	
+			set WRF_EXE_VERSION			= WRF3.6.1_dm			
+			echo "This module is not working!!"
+			echo "Reason: SMDA_EXE_PATH is not set up (did not compile smda.exe with this compiler)"
+			echo "Reason: NC_REPL_PATH is not set up (did not compile nc_repl.exe with this compiler)"
+			exit 1
+		endif
+
+		# For apurimac 03 (old storage)
+		if (${MODULE_FILE} == 'module_20150204.txt') then	
+			set PROGRAM_DIR				= ~/data/apurimac_03
+			set WPS_EXE_VERSION			= WPS3.4.1
+			set WPS_GEOG_PATH				= ${PROGRAM_DIR}/wps/geog
+			set WRFDA_EXE_VERSION		= WRFDA3.4_dm	
+			set WRFPLUS_EXE_VERSION		= WRFPLUS3.4_dm
+			set WRFDA_THIN_MESH_CONV	= "30*10."
+			set WRFDA_I_PARENT_START	= 1
+			set WRFDA_J_PARENT_START	= 1	
+			set WRF_EXE_VERSION			= WRF3.4_dm	
+			echo "This module is not working!!"
+			echo "Reason: SMDA_EXE_PATH is not set up (did not compile smda.exe with this compiler)"
+			echo "Reason: NC_REPL_PATH is not set up (did not compile nc_repl.exe with this compiler)"
+			exit 1	
+			
+		endif
+	
+		# For 04_install (new storage)
+		if (${MODULE_FILE} == 'data2/installation/module_04_20160203.txt') then	
+			set PROGRAM_DIR				= ~/data2/installation/04_install
+			set WPS_EXE_VERSION			= WPS3.7.1
+			set WPS_GEOG_PATH				= ${PROGRAM_DIR}/wps/geog
+			set WRFDA_EXE_VERSION		= WRFDA3.7.1_4dvar_dm	
+			set WRFPLUS_EXE_VERSION		= WRFPLUS3.7.1_dm
+			set WRFDA_THIN_MESH_CONV	= "28*10."
+			set WRFDA_I_PARENT_START	= 0
+			set WRFDA_J_PARENT_START	= 0	
+			set WRF_EXE_VERSION			= WRF3.7.1_dm		
+			set SMDA_EXE_PATH				= ~/data2/coding/fortran/2017/170301_smda_v09_data2_module_04
+			set NC_REPL_PATH				= ~/data2/coding/fortran/2017/170401_nc_repl_v02_data2_module_04
+		endif
