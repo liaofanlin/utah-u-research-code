@@ -1,0 +1,72 @@
+#!/bin/csh -x
+#
+# Note (2018.11.11): For more information, please visit:
+#	- NCL book at 2017.06.28
+#	- rn170701
+#	- /Volumes/G-RAID/archive/MATLAB/2017/170811_PrSMDA_R01_v06/fig_06_T_Q_analysis_increment
+
+set WPS_START_DATE		= $1
+set WPS_END_DATE			= $2
+set ADV_TIME_EXE			= $3
+set WORKPATH				= $4
+
+set FORECAST_INI_FREQ	= $5
+set WRF_OUT_TIME_FREQ	= $6
+set FORECAST_LEAD_TIME	= $7
+#######################################################################################
+echo "Processing WRF Out Files in INTRP3D of the Forecasts from UOU CDA CYCLING: "
+
+rm -rf matlab_sp03/uou_cda_cycling_forecast_intrp3d
+mkdir  matlab_sp03/uou_cda_cycling_forecast_intrp3d
+
+cd     matlab_sp03/uou_cda_cycling_forecast_intrp3d
+
+set DA_START_DATE    = ${WPS_START_DATE}
+set DA_END_DATE      = `${ADV_TIME_EXE} ${DA_START_DATE} ${FORECAST_INI_FREQ}`
+
+while ( ${DA_END_DATE} <= ${WPS_END_DATE} )
+
+	# Folder processing
+	mkdir ${DA_START_DATE}
+	cd    ${DA_START_DATE}
+
+	set WRF_OUT_TIME			= ${DA_START_DATE}
+	set WRF_OUT_FINAL_TIME 	= `${ADV_TIME_EXE} ${DA_START_DATE} ${FORECAST_LEAD_TIME}`
+
+	while (${WRF_OUT_TIME} <= ${WRF_OUT_FINAL_TIME})	
+
+		echo " "
+		echo "===== Processing Forecast at "${WRF_OUT_TIME}" at Folder "${DA_START_DATE}" ====="
+	
+		# Process of date
+		# ---------------
+			set yyyy1 = `echo $WRF_OUT_TIME | cut -c1-4`
+			set   mm1 = `echo $WRF_OUT_TIME | cut -c5-6`
+			set   dd1 = `echo $WRF_OUT_TIME | cut -c7-8`
+			set   hh1 = `echo $WRF_OUT_TIME | cut -c9-10`
+					
+		# Copy the NCL script here
+		cp ../../../zz_script/producing_files_for_matlab/07_modified_wrf_PressureLevel1.ncl .
+			
+		# Compute Tc, Td, and RH at the pressure levels for the forecasts
+		ln -sf ../../../uou_cda_cycling/${WPS_START_DATE}/${DA_START_DATE}/04_wrf_full/wrfout_d01_${yyyy1}-${mm1}-${dd1}_${hh1}:00:00 input.nc
+		ncl 07_modified_wrf_PressureLevel1.ncl
+		mv output.nc wrfout_ini_${DA_START_DATE}_valid_${WRF_OUT_TIME}.nc
+		mv plt_PressureLevel1.pdf fges_PressureLevel1.pdf
+		rm input.nc
+		
+		# For next step
+		set WRF_OUT_TIME = `${ADV_TIME_EXE} ${WRF_OUT_TIME} ${WRF_OUT_TIME_FREQ}`
+		
+	end	
+				
+	# Go back 
+	cd ..	
+				
+	# For next step
+	set DA_START_DATE = `${ADV_TIME_EXE} ${DA_START_DATE} ${FORECAST_INI_FREQ}`
+	set DA_END_DATE   = `${ADV_TIME_EXE} ${DA_END_DATE} ${FORECAST_INI_FREQ}`
+
+end # end of while loop for ( ${DA_END_DATE} <= ${WPS_END_DATE} )
+
+cd ../..
