@@ -1,0 +1,49 @@
+# Update date: 2017.09.25
+
+
+# This is recommended by WRF user guide:
+# 	- /uufs/chpc.utah.edu/sys/installdir/netcdf-c/4.4.1-c7/
+unlimit
+
+# Modules
+module purge
+module load chpc
+module load intel/2017.4.196
+module load mvapich2
+module load hdf5/1.8.17
+module load netcdf-c
+module load netcdf-f
+module load ncl
+module load ncview
+module load nco
+module load grads
+module load matlab
+
+
+# ================================================================
+# Note and setup by dates
+# ================================================================
+# On 2017.08.19, the default loaded modules are as follows:
+#  1) chpc/1.0           3) mvapich2/2.2.i   5) netcdf-c/4.4.1     7) ncl/6.3.0      9) nco/4.4.4
+#  2) intel/2017.4.196   4) hdf5/1.8.17      6) netcdf-f/4.4.4.i   8) ncview/2.1.5  10) grads/2.1.0
+
+# On 2018.05.22, the loaded modules become:
+#  1) chpc/1.0           3) mvapich2/2.2   5) netcdf-c/4.4.1   7) ncl/6.4.0      9) nco/4.7.4
+#  2) intel/2017.4.196   4) hdf5/1.8.18    6) netcdf-f/4.4.4   8) ncview/2.1.5  10) grads/2.1.0
+
+# (2017.09.25) Note that there is no netcdf.inc under /uufs/chpc.utah.edu/sys/installdir/netcdf-c/4.4.1-c7/include, 
+# and besides the $NETCDF is not set after loading the modules.  Therefore, I did the following:
+setenv NETCDF ${NETCDFF}
+
+# (2017.09.25) Set up LAPACH_PATH for GSI compilation
+# 	--> CHPC: MKL is part of the intel compiler suite
+setenv LAPACK_PATH ${MKLROOT}
+
+# (2017.09.25) Set up WRF_DIR for GSI compilation
+setenv WRF_DIR /uufs/chpc.utah.edu/common/home/zpu-group10/pu02/installation/11_install/wrf/WRF3.9_dm
+
+# (2019.03.25) To add my own anaconda3 into the path
+#	- see the python book on 2019.02.28
+module use #HOME/MyModules
+module load miniconda3/latest
+

@@ -1,0 +1,16 @@
+Files differing from the original comGSIv3.6_EnKFv1.2 distribution:
+
+Makefile.conf
+enkf_main.f90
+enkf_obsmod.f90
+enkf.f90
+gridinfo_wrf.f90
+gridio_wrf.f90
+innovstats.f90
+kdtree2.f90
+letkf.F90
+loadbal.f90
+mpi_readobs.f90
+read_locinfo.f90
+readconvobs.f90
+statevec.f90

@@ -1,0 +1,19 @@
+2017.08.17
+==========
+Program			| Version 	| Status	| Note	| Compilers
+------------------------------------------------------------------
+WRF 			| 3.9		| Compiled	| 		| module_11 (INTEL ifort/icc with dmpar) 
+WPS				| 3.9		| Compiled	| 3		| module_11 (Linux x86_64, Intel compile with serial)
+WRFDA (3dvar)	| 3.9		| Failed	| 1		| module_11 (Intel ifort/icc with dmpar)
+
+GSI				Linux x86_64, Intel compiler (ifort & icc)  (dmpar,optimize)
+
+
+Note 1 (2017.08.19)
+-------------------
+At GT clusters, I also have similar experiences.  I successfully compiled WRFDA with the gcc compilers but failed with the intel compilers.  This is why I have module_12.
+
+Note 3 (2017.08.19)
+-------------------
+Note that I need to manually change the WRF path in configure.wps
+

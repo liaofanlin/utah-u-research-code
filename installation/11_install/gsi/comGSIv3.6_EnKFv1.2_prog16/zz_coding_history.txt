@@ -1,0 +1,33 @@
+Update: 2019.02.18
+
+Program 	| Script									| Note
+----------------------------------------------------
+01			| $GSI/src/enkf/gridinfo_wrf.f90	| rn171017
+			| $GSI/src/enkf/gridio_wrf.f90
+----------------------------------------------------
+02			| $GSI/src/enkf/enkf_main.f90 	| rn180523
+			| $GSI/src/enkf/gridinfo_wrf.f90	| rn180524
+			| $GSI/src/enkf/statevec.f90
+			| $GSI/src/enkf/gridinfo.f90
+----------------------------------------------------
+04			| $GSI/src/enkf/enkf_main.f90		| rn180816
+			| $GSI/src/enkf/enkf_obsmod.f90	| rn180819
+			| $GSI/src/enkf/innovstats.f90
+			| $GSI/src/enkf/mpi_readobs.f90
+			| $GSI/src/enkf/readconvobs.f90
+----------------------------------------------------
+13			| $GSI/src/enkf/enkf.f90			| rn190214
+			| $GSI/src/enkf/kdtree2.f90		| rn190218
+			| $GSI/src/enkf/letkf.f90
+			| $GSI/src/enkf/loadbal.f90
+----------------------------------------------------
+14			| $GSI/src/enkf/enkf.f90			| rn190224
+														| rn190225
+														| rn190226
+----------------------------------------------------
+15			| $GSI/src/enkf/readconvobs.f90	| rn190228
+----------------------------------------------------												
+
+
+
+
