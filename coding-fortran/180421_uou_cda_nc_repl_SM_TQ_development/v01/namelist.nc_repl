@@ -1,0 +1,8 @@
+&nc_repl
+ NX=602,
+ NY=392,
+ NZ=40,
+ NZ_SOIL=4,
+ NC_REPL_WRF_REPL_FILENAME='wrfinput_d01_nc_repl',
+ NC_REPL_PRE_FCST_FILENAME='wrfout_prev_fcst',
+ /

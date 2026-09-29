@@ -1,0 +1,15 @@
+ PROGRAM read_soils
+ implicit none
+ integer,parameter :: nx=1440, ny=600
+ real,dimension(nx,ny) :: soils
+ character(len=20) :: fname
+!*** select clay, silt, or sand file
+! fname = 'tex_statsfao_mod44w_0.25_gldas2p4.bin'
+! fname = 'clayfao.1gd4r.bin'
+! fname = 'siltfao.1gd4r.bin'
+ fname = 'sandfao.1gd4r.bin'
+ open(98,file=trim(fname),form='unformatted',status='old', &
+      access='direct',recl=nx*ny*4)
+ read(98,rec=1) soils
+ close(98)
+ END

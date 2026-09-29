@@ -1,0 +1,4 @@
+&iosetup
+ infilename='diag_conv_ges.ensmean',
+ outfilename='diag_conv_ges.ensmean.txt',
+/
